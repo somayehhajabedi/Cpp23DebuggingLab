@@ -20,7 +20,7 @@ concept QueueElement = std::is_nothrow_move_constructible_v<T> && std::is_nothro
 template <QueueElement T>
 class SPSCQueue {
 public:
-    explicit SPSCQueue(std::size_t capacity) : capacity_(capacity + 1), buffer_(capacity_) {}
+    explicit SPSCQueue(std::size_t capacity) : capacity_(capacity + 1), buffer_(capacity) {}
 
     bool tryPush(T value) {
         const std::size_t head = head_.load(std::memory_order_relaxed);
