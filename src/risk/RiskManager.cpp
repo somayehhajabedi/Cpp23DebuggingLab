@@ -16,7 +16,11 @@ RiskDecision RiskManager::evaluate(const std::string& symbol, Side side, double 
         return RiskDecision{.approved = false, .reason = "order quantity exceeds limit"};
     }
 
-    const double notional = static_cast<double>(quantity) * price;
+    // Fixed-point notional calculation (quantity in whole shares, price in
+    // integer cents) avoids floating-point rounding on the limit check.
+    const std::int32_t qtyLots = static_cast<std::int32_t>(quantity);
+    const std::int32_t priceCents = static_cast<std::int32_t>(price * 100.0);
+    const double notional = static_cast<double>(qtyLots * priceCents) / 100.0;
     if (notional > limits_.maxNotionalExposure) {
         return RiskDecision{.approved = false, .reason = "order notional exceeds limit"};
     }
