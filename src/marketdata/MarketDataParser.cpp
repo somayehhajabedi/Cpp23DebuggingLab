@@ -76,12 +76,6 @@ std::expected<Tick, ParseError> MarketDataParser::parseLine(std::string_view lin
     }
 
     const std::vector<std::string_view> fields = splitFields(line);
-    // Bounds check happens before any indexing below: a short or truncated
-    // line is reported as a normal parse error instead of touching memory
-    // past the vector.
-    if (fields.size() < kExpectedFieldCount) {
-        return std::unexpected(ParseError::MissingField);
-    }
 
     const auto timestamp = parseNumber<std::int64_t>(fields[0]);
     if (!timestamp) {
