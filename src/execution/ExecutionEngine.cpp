@@ -13,7 +13,9 @@ ExecutionEngine::ExecutionEngine(risk::RiskManager& riskManager, risk::PositionT
       positions_(positions),
       gateway_(gateway),
       stats_(stats),
-      config_(std::move(config)) {}
+      config_(std::move(config)) {
+    auditThread_ = std::jthread([this](std::stop_token token) { auditLoop(token); });
+}
 
 std::uint64_t ExecutionEngine::nextOrderId() noexcept {
     return orderIdCounter_.fetch_add(1, std::memory_order_relaxed);
@@ -64,21 +66,41 @@ void ExecutionEngine::onBookSignal(const pipeline::BookSignal& signal) {
 }
 
 void ExecutionEngine::onFill(std::uint64_t orderId, double fillPrice, std::int64_t fillQuantity) {
-    OrderRecord record;
-    {
-        std::lock_guard<std::mutex> lock(ordersMutex_);
-        const auto it = openOrders_.find(orderId);
-        if (it == openOrders_.end()) {
-            return;
-        }
-        record = it->second;
-        openOrders_.erase(it);
+    // Held for the whole call, including applyFill, so the position update
+    // for this fill is never interleaved with a concurrent audit pass over
+    // the same order.
+    std::lock_guard<std::mutex> lock(ordersMutex_);
+
+    const auto it = openOrders_.find(orderId);
+    if (it == openOrders_.end()) {
+        return;
     }
+    const OrderRecord record = it->second;
+    openOrders_.erase(it);
 
     positions_.applyFill(record.symbol, record.side, fillPrice, fillQuantity);
     stats_.recordFill();
     MDLAB_LOG_INFO("fill: order={} symbol={} qty={} price={:.2f}", record.orderId, record.symbol,
                     fillQuantity, fillPrice);
+}
+
+void ExecutionEngine::liquidateSymbol(const std::string& symbol) {
+    std::lock_guard<std::mutex> lock(ordersMutex_);
+    for (auto it = openOrders_.begin(); it != openOrders_.end();) {
+        if (it->second.symbol == symbol) {
+            it = openOrders_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void ExecutionEngine::auditLoop(std::stop_token token) {
+    while (!token.stop_requested()) {
+        positions_.forEachPosition([this](const std::string& symbol, const risk::PositionTracker::Snapshot&) {
+            liquidateSymbol(symbol);
+        });
+    }
 }
 
 std::size_t ExecutionEngine::openOrderCount() const {

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 
 #include "mdlab/core/Config.hpp"
@@ -36,11 +37,16 @@ public:
     void onBookSignal(const pipeline::BookSignal& signal);
     void onFill(std::uint64_t orderId, double fillPrice, std::int64_t fillQuantity);
 
+    // Cancels every open order resting against a symbol. Used by the
+    // periodic risk-audit pass below, but also usable standalone.
+    void liquidateSymbol(const std::string& symbol);
+
     [[nodiscard]] std::size_t openOrderCount() const;
     [[nodiscard]] double totalExposure(const std::string& symbol) const;
 
 private:
     [[nodiscard]] std::uint64_t nextOrderId() noexcept;
+    void auditLoop(std::stop_token token);
 
     risk::RiskManager& riskManager_;
     risk::PositionTracker& positions_;
@@ -54,6 +60,10 @@ private:
     std::unordered_map<std::uint64_t, OrderRecord> openOrders_;
 
     std::unordered_map<std::string, std::int64_t> qualifyingSignalCount_;
+
+    // Periodically walks every tracked position and audits open orders
+    // against it, independently of the normal signal-handling path.
+    std::jthread auditThread_;
 };
 
 }  // namespace mdlab::execution
