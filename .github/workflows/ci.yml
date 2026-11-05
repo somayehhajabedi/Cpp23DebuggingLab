@@ -1,0 +1,50 @@
+name: CI
+
+# Scoped deliberately to the clean baseline. scenario/* branches each carry
+# one intentionally-injected defect (crash/hang/wrong-output/slowdown by
+# design), so they are excluded from this workflow's triggers on purpose.
+on:
+  push:
+    branches: [main, baseline]
+  pull_request:
+    branches: [main, baseline]
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++-14 libgtest-dev
+
+      - name: Configure (debug)
+        run: cmake --preset debug
+
+      - name: Build (debug)
+        run: cmake --build --preset debug
+
+      - name: Test (debug)
+        run: ctest --preset debug
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++-14 libgtest-dev
+
+      - name: Configure (asan-ubsan)
+        run: cmake --preset asan-ubsan
+
+      - name: Build (asan-ubsan)
+        run: cmake --build --preset asan-ubsan
+
+      - name: Test (asan-ubsan)
+        run: ctest --preset asan-ubsan
