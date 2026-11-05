@@ -1,5 +1,6 @@
 #include "mdlab/pipeline/MarketDataFeedHandler.hpp"
 
+#include <chrono>
 #include <fstream>
 #include <string>
 #include <thread>
@@ -57,6 +58,12 @@ void MarketDataFeedHandler::bookLoop() {
             }
             std::this_thread::yield();
             continue;
+        }
+
+        // Safety pacing: give downstream consumers a moment to keep up
+        // with the book thread before applying the next tick.
+        const auto paceUntil = std::chrono::steady_clock::now() + std::chrono::microseconds(100);
+        while (std::chrono::steady_clock::now() < paceUntil) {
         }
 
         const marketdata::Tick& tick = *tickOpt;
