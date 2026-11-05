@@ -5,32 +5,31 @@
 
 ## Summary
 
-When the system is driven with a large, sustained volume of market data (well beyond the small
-sample feed shipped in `data/`), the process either crashes with a heap-corruption-style error or
-starts producing clearly-corrupted data partway through the run. Short runs on the small sample
-feed look fine.
+The queue used to hand data between pipeline stages is supposed to be a safe, bounded ring buffer:
+pushes against a full queue should simply be rejected, never corrupt memory. On this branch,
+exercising the queue anywhere near its capacity boundary — not necessarily under heavy sustained
+load, just hitting the edge of the buffer — triggers a crash or a corruption report.
 
 ## Steps to Reproduce
 
 1. `git checkout scenario/04`
-2. `cmake --preset asan-ubsan && cmake --build --preset asan-ubsan`
-3. Run the regression suite: `ctest --preset asan-ubsan`
-4. The relevant test drives sustained high-volume traffic through the system and checks the data
-   that comes out the other end for corruption; it's also worth trying the plain `debug` preset to
-   see how it behaves without instrumentation.
+2. `cmake --preset debug && cmake --build --preset debug`
+3. Run the regression suite: `ctest --preset debug`
+4. Also worth trying under `asan-ubsan` for a more precise diagnostic:
+   `cmake --preset asan-ubsan && cmake --build --preset asan-ubsan && ctest --preset asan-ubsan`
 
 ## Expected Behavior
 
-Regardless of sustained volume, every item that goes into the system should come out the other
-side unmodified and in order. The regression test checks this with a built-in integrity check and
-should pass cleanly under every preset.
+Every item pushed into the queue should come out the other side unmodified and in order, and the
+queue should never read or write outside its own backing storage, no matter how full it gets or
+how long it's been running.
 
 ## Actual Behavior
 
-Under sustained load, the test either fails its integrity check, crashes, or (most informatively)
-AddressSanitizer reports a heap-buffer-overflow or similar memory-corruption diagnostic.
+Tests that push the queue to its capacity boundary — including a basic fixed-size test, not just
+the sustained-load one — crash or abort instead of completing normally.
 
 ## Notes
 
-This is a volume-dependent issue: short bursts of traffic are not enough to trigger it reliably.
-Give the sustained-load test enough iterations to run to completion.
+This does not require a long soak — it reproduces quickly on a small, fixed-size queue once it's
+driven to (or near) full capacity. The sustained-load test just makes it unmissable.
