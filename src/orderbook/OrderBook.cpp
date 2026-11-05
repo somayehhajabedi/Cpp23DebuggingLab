@@ -21,18 +21,12 @@ void OrderBook::removeFromLevel(Side side, double price, std::int64_t quantity) 
             return;
         }
         it->second -= quantity;
-        if (it->second <= 0) {
-            bids_.erase(it);
-        }
     } else {
         auto it = asks_.find(price);
         if (it == asks_.end()) {
             return;
         }
         it->second -= quantity;
-        if (it->second <= 0) {
-            asks_.erase(it);
-        }
     }
 }
 
@@ -58,9 +52,6 @@ void OrderBook::replaceOrder(std::uint64_t orderId, double newPrice, std::int64_
     }
     const RestingOrder oldOrder = it->second;
 
-    // Remove the resting quantity at the old price level first, then add
-    // the new quantity at the new price level, so the aggregated book is
-    // never observed in a partially-updated state by bestBid()/bestAsk().
     removeFromLevel(oldOrder.side, oldOrder.price, oldOrder.quantity);
     it->second = RestingOrder{.side = oldOrder.side, .price = newPrice, .quantity = newQuantity};
     addToLevel(oldOrder.side, newPrice, newQuantity);
