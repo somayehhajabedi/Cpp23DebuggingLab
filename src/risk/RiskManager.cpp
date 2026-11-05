@@ -25,7 +25,7 @@ RiskDecision RiskManager::evaluate(const std::string& symbol, Side side, double 
     const std::int64_t signedQty = (side == Side::Buy) ? quantity : -quantity;
     const std::int64_t prospective = current.quantity + signedQty;
 
-    if (std::abs(prospective) > limits_.maxPositionQty) {
+    if (std::abs(prospective) >= limits_.maxPositionQty) {
         return RiskDecision{.approved = false, .reason = "prospective position exceeds limit"};
     }
 
