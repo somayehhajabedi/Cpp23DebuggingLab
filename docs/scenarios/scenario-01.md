@@ -20,13 +20,15 @@ same symbol. A healthy book should never report this.
 ## Expected Behavior
 
 For every symbol, at every point in time, the best bid price is always strictly less than the best
-ask price (or one/both sides are simply absent). A test in the regression suite drives a long,
-varied sequence of order activity and asserts this never happens.
+ask price (or one/both sides are simply absent), and the reported best price on either side should
+always reflect currently-resting quantity — never a price level that's already been fully
+cancelled or replaced away.
 
 ## Actual Behavior
 
-After enough add/cancel/replace activity on a symbol, the book reports a best bid price greater
-than the best ask price for that symbol. The regression test that checks this invariant fails.
+After add/cancel/replace activity on a symbol, the book can report a best price that no longer has
+any real resting quantity behind it, and in some sequences this surfaces as a best bid reported
+above the best ask. Some tests in the regression suite that exercise cancel/replace behavior fail.
 
 ## Notes
 
