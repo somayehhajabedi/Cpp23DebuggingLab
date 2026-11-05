@@ -6,6 +6,10 @@ implementation. Every `scenario/NN` branch forks from `baseline` with exactly on
 injected — see [`docs/scenarios/00-index.md`](docs/scenarios/00-index.md) for the catalog of bug
 reports.
 
+This repository's initial codebase, baseline tests, and the 10 debugging scenarios were generated
+with AI assistance — see [`docs/AI_DEVELOPMENT.md`](docs/AI_DEVELOPMENT.md) for what that covers
+and how it's distinguished from the human-led debugging work the lab is meant for.
+
 ## Architecture
 
 ```
