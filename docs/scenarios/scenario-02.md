@@ -6,8 +6,8 @@
 ## Summary
 
 While testing how the feed handler copes with occasional bad rows from an upstream data vendor
-(truncated lines, missing fields), the simulation process crashes outright with a segmentation
-fault instead of logging a parse error and continuing.
+(truncated lines, missing fields), the simulation process crashes outright instead of logging a
+parse error and continuing.
 
 ## Steps to Reproduce
 
@@ -25,10 +25,12 @@ crash the process.
 
 ## Actual Behavior
 
-The process terminates with a segmentation fault partway through the malformed-input fixture.
+The process terminates abnormally (crash/abort) partway through the malformed-input fixture,
+instead of reporting a parse error and continuing.
 
 ## Notes
 
-If the crash doesn't reproduce immediately on a plain debug build, try the `asan-ubsan` preset —
-sanitizer-instrumented builds tend to surface memory-safety issues more consistently and with a
-more precise crash location.
+The exact failure mode (signal, abort, or sanitizer report) can vary by build configuration. If it
+doesn't reproduce immediately on a plain debug build, try the `asan-ubsan` preset — sanitizer- and
+hardening-instrumented builds tend to surface memory-safety issues more consistently and with a
+more precise location.
