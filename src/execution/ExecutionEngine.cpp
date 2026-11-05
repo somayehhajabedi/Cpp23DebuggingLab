@@ -64,20 +64,20 @@ void ExecutionEngine::onBookSignal(const pipeline::BookSignal& signal) {
 }
 
 void ExecutionEngine::onFill(std::uint64_t orderId, double fillPrice, std::int64_t fillQuantity) {
-    OrderRecord record;
+    OrderRecord* record = nullptr;
     {
         std::lock_guard<std::mutex> lock(ordersMutex_);
         const auto it = openOrders_.find(orderId);
         if (it == openOrders_.end()) {
             return;
         }
-        record = it->second;
+        record = &it->second;
         openOrders_.erase(it);
     }
 
-    positions_.applyFill(record.symbol, record.side, fillPrice, fillQuantity);
+    positions_.applyFill(record->symbol, record->side, fillPrice, fillQuantity);
     stats_.recordFill();
-    MDLAB_LOG_INFO("fill: order={} symbol={} qty={} price={:.2f}", record.orderId, record.symbol,
+    MDLAB_LOG_INFO("fill: order={} symbol={} qty={} price={:.2f}", record->orderId, record->symbol,
                     fillQuantity, fillPrice);
 }
 
