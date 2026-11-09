@@ -77,6 +77,10 @@ std::expected<Tick, ParseError> MarketDataParser::parseLine(std::string_view lin
 
     const std::vector<std::string_view> fields = splitFields(line);
 
+    if (fields.size() < 6) {
+       return std::unexpected(ParseError::MissingField);
+    }
+
     const auto timestamp = parseNumber<std::int64_t>(fields[0]);
     if (!timestamp) {
         return std::unexpected(timestamp.error());
