@@ -20,13 +20,22 @@ void OrderBook::removeFromLevel(Side side, double price, std::int64_t quantity) 
         if (it == bids_.end()) {
             return;
         }
-        it->second -= quantity;
+	it->second -= quantity;
+
+	if (it->second == 0) {
+    	   bids_.erase(it);
+	}
     } else {
         auto it = asks_.find(price);
         if (it == asks_.end()) {
             return;
         }
+
         it->second -= quantity;
+	
+	if (it->second == 0) {
+    	   asks_.erase(it);
+	}
     }
 }
 
