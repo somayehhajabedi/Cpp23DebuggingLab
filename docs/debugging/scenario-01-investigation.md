@@ -2,7 +2,7 @@
 
 **Project:** Cpp23DebuggingLab  
 **Branch:** `scenario/01`  
-**Status:** Root cause confirmed; fix pending  
+**Status:** Root cause confirmed; fix verified.  
 **Tools:** C++23, CMake, GoogleTest, CTest, GDB 17.1
 
 ## 1. Bug Report
