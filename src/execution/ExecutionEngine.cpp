@@ -2,6 +2,8 @@
 
 #include "mdlab/logger/Logger.hpp"
 
+#include  <optional>
+
 namespace mdlab::execution {
 
 using marketdata::Side;
@@ -64,14 +66,16 @@ void ExecutionEngine::onBookSignal(const pipeline::BookSignal& signal) {
 }
 
 void ExecutionEngine::onFill(std::uint64_t orderId, double fillPrice, std::int64_t fillQuantity) {
-    OrderRecord* record = nullptr;
+    std::optional<OrderRecord> record;
+
     {
         std::lock_guard<std::mutex> lock(ordersMutex_);
         const auto it = openOrders_.find(orderId);
         if (it == openOrders_.end()) {
             return;
         }
-        record = &it->second;
+
+        record = it->second;
         openOrders_.erase(it);
     }
 
