@@ -25,26 +25,26 @@ public:
     bool tryPush(T value) {
         const std::size_t head = head_.load(std::memory_order_relaxed);
         const std::size_t nextHead = increment(head);
-        if (nextHead == tail_.load(std::memory_order_relaxed)) {
+        if (nextHead == tail_.load(std::memory_order_acquire)) {
             return false;  // full
         }
         buffer_[head] = std::move(value);
-        head_.store(nextHead, std::memory_order_relaxed);
+        head_.store(nextHead, std::memory_order_release);
         return true;
     }
 
     std::optional<T> tryPop() {
         const std::size_t tail = tail_.load(std::memory_order_relaxed);
-        if (tail == head_.load(std::memory_order_relaxed)) {
+        if (tail == head_.load(std::memory_order_acquire)) {
             return std::nullopt;  // empty
         }
         T value = std::move(buffer_[tail]);
-        tail_.store(increment(tail), std::memory_order_relaxed);
+        tail_.store(increment(tail), std::memory_order_release);
         return value;
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        return head_.load(std::memory_order_relaxed) == tail_.load(std::memory_order_relaxed);
+        return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire);
     }
 
     [[nodiscard]] std::size_t capacity() const noexcept { return capacity_ - 1; }
