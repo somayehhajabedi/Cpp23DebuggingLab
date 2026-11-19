@@ -1,138 +1,416 @@
 # Cpp23DebuggingLab
 
-A small but realistic multithreaded trading / market-data processing system, built as a C++23
-debugging laboratory. The `baseline` branch is a fully working, fully tested reference
-implementation. Every `scenario/NN` branch forks from `baseline` with exactly one realistic defect
-injected — see [`docs/scenarios/00-index.md`](docs/scenarios/00-index.md) for the catalog of bug
-reports.
+### Advanced C++23 Debugging & Troubleshooting in Multithreaded Trading Systems
 
-This repository's initial codebase, baseline tests, and the 10 debugging scenarios were generated
-with AI assistance — see [`docs/AI_DEVELOPMENT.md`](docs/AI_DEVELOPMENT.md) for what that covers
-and how it's distinguished from the human-led debugging work the lab is meant for.
+![C++](https://img.shields.io/badge/C%2B%2B-23-blue)
+![Platform](https://img.shields.io/badge/Platform-Linux-orange)
+![Debugger](https://img.shields.io/badge/Debugger-GDB-blue)
+![Sanitizers](https://img.shields.io/badge/Sanitizers-ASan%20%7C%20UBSan%20%7C%20TSan-purple)
+![Build](https://img.shields.io/badge/Build-CMake%20%7C%20Ninja-green)
+![Tests](https://img.shields.io/badge/Regression%20Tests-57-brightgreen)
+![Progress](https://img.shields.io/badge/Scenarios%20Solved-5%2F10-green)
 
-## Architecture
+## Project Overview
 
+Cpp23DebuggingLab is a hands-on debugging laboratory built around a realistic multithreaded trading and market data processing system implemented in modern C++.
+
+The project focuses on investigating, diagnosing, and resolving realistic software defects commonly encountered in complex C++ systems, including financial trading platforms, real-time applications, and concurrent Linux services.
+
+Rather than focusing exclusively on implementing new features, this laboratory emphasizes understanding existing codebases, analyzing runtime behavior, identifying root causes, and implementing minimal, validated fixes.
+
+Each debugging scenario introduces an isolated defect into an otherwise healthy reference implementation.
+
+## Engineering Objectives
+
+- Debug complex, multithreaded C++ codebases.
+- Investigate crashes and undefined behavior.
+- Analyze stack traces and runtime diagnostics.
+- Identify memory corruption and object lifetime violations.
+- Diagnose data races and synchronization failures.
+- Reason about atomic memory ordering and happens-before relationships.
+- Investigate performance regressions.
+- Preserve existing architecture while implementing minimal fixes.
+- Validate corrections through automated regression testing.
+- Produce reproducible, professional technical investigation reports.
+
+## Debugging Progress
+
+**5 of 10 scenarios completed — 50%**
+
+| Scenario | Reported Symptom | Debugging Tools | Status |
+|---|---|---|---|
+| 01 | Top-of-book occasionally reports bid above ask | GDB, GoogleTest | Completed |
+| 02 | Feed handler crashes on a malformed input line | GDB | Completed |
+| 03 | Garbage output or crash after an order fills | ASan, UBSan | Completed |
+| 04 | Heap corruption under sustained load | GDB, ASan, UBSan | Completed |
+| 05 | Consumer observes a price that was never sent | TSan | Completed |
+| 06 | Risk limit is sometimes not enforced under load | TBD | Pending |
+| 07 | Simulation hangs indefinitely | TBD | Pending |
+| 08 | Feed processing has become much slower | TBD | Pending |
+| 09 | Order exactly at the risk limit is handled inconsistently | TBD | Pending |
+| 10 | Very large order produces a nonsensical notional value | TBD | Pending |
+
+## Completed Technical Investigations
+
+### Scenario 01 — Order Book Consistency
+
+- Investigated incorrect top-of-book behavior.
+- Analyzed order cancellation and replacement operations.
+- Identified incorrect handling of empty price levels.
+- Restored order book invariants.
+- Validated the correction through regression testing.
+
+[Original Challenge](../../tree/buggy/scenario-01) | [Solution and Investigation](../../tree/scenario/01)
+
+### Scenario 02 — Malformed Market Data
+
+- Investigated a crash triggered by malformed market data.
+- Analyzed parser behavior using GDB.
+- Identified the underlying input-processing defect.
+- Corrected the implementation and validated parser robustness.
+
+[Original Challenge](../../tree/buggy/scenario-02) | [Solution and Investigation](../../tree/scenario/02)
+
+### Scenario 03 — Heap Use-After-Free
+
+- Investigated a memory safety violation in order-fill processing.
+- Analyzed AddressSanitizer diagnostic reports.
+- Identified an object lifetime violation involving an erased container element.
+- Corrected resource lifetime handling.
+- Validated the fix using sanitizer-enabled regression tests.
+
+[Original Challenge](../../tree/buggy/scenario-03) | [Solution and Investigation](../../tree/scenario/03)
+
+### Scenario 04 — Ring Buffer Overflow
+
+- Investigated invalid memory access in a bounded SPSC queue.
+- Analyzed GDB stack frames and runtime variable values.
+- Identified an inconsistency between logical queue capacity and allocated storage.
+- Implemented a minimal correction.
+- Validated queue capacity, wraparound, and sustained-load behavior.
+
+[Original Challenge](../../tree/buggy/scenario-04) | [Solution and Investigation](../../tree/scenario/04)
+
+### Scenario 05 — Lock-Free Queue Data Race
+
+- Investigated unsafe concurrent access to a non-atomic ring buffer.
+- Analyzed conflicting producer and consumer memory accesses using ThreadSanitizer.
+- Identified incorrect relaxed atomic memory ordering.
+- Restored acquire/release synchronization in both directions.
+- Preserved the lock-free SPSC architecture without introducing mutexes.
+- Distinguished sanitizer instrumentation overhead from concurrency failures.
+- Validated the final implementation with all 57 ThreadSanitizer tests passing.
+
+[Original Challenge](../../tree/buggy/scenario-05) | [Solution and Investigation](../../tree/scenario/05)
+
+[Detailed Investigation Report](../../blob/scenario/05/docs/debugging/scenario-05-investigation.md)
+
+## Debugging Methodology
+
+The investigations follow a systematic engineering workflow:
+
+```text
+Observe the failure
+        |
+Reproduce the defect
+        |
+Isolate the failing test
+        |
+Collect runtime diagnostics
+        |
+Analyze the source code
+        |
+Identify the root cause
+        |
+Implement a minimal fix
+        |
+Run regression tests
+        |
+Review and document the solution
 ```
-MarketDataParser --(Tick)--> SPSCQueue --> OrderBook --(BookSignal)--> SPSCQueue --> ExecutionEngine
-                                                                              |             |
-                                                                        RiskManager <-------+
-                                                                              |
-                                                                       OrderGateway (simulated
-                                                                       exchange, async fills)
 
-Logger: async, multi-producer structured logger used by every component above.
+Each investigation prioritizes evidence-driven debugging rather than speculative code changes.
+
+## Debugging Tools
+
+| Tool | Application |
+|---|---|
+| GDB | Stack traces, breakpoints, stack frames, runtime variable inspection |
+| AddressSanitizer (ASan) | Heap use-after-free, buffer overflows, invalid memory access |
+| UndefinedBehaviorSanitizer (UBSan) | Selected undefined behavior detection |
+| ThreadSanitizer (TSan) | Data races and synchronization failures |
+| GoogleTest | Unit and integration testing |
+| CTest | Test isolation and regression validation |
+| Git | Source comparison, defect tracking, minimal fix verification |
+| CMake / Ninja | Multiple build configurations and incremental compilation |
+
+### Technical Guides
+
+Reusable debugging guides developed during the investigations:
+
+- [AddressSanitizer — Practical C++ Debugging Guide](../../blob/scenario/03/docs/debugging/ASAN_GUIDE.md)
+- [ThreadSanitizer — Practical C++ Debugging Guide](../../blob/scenario/05/docs/debugging/TSAN_GUIDE.md)
+
+## System Architecture
+
+The laboratory simulates a multithreaded market data and order execution pipeline.
+
+```mermaid
+flowchart TD
+    A[CSV Market Data] --> B[MarketDataParser]
+    B --> C[SPSC Queue]
+    C --> D[OrderBook]
+    D --> E[SPSC Queue]
+    E --> F[ExecutionEngine]
+    F --> G[RiskManager]
+    G -->|Risk Approved| H[OrderGateway]
+    H --> I[Simulated Exchange Fills]
+    I -->|Asynchronous Callback| F
+
+    B -.-> J[Async Logger]
+    D -.-> J
+    F -.-> J
+    G -.-> J
+    H -.-> J
 ```
 
-Each arrow between the first three stages is a dedicated OS thread, wired together in
-`MarketDataFeedHandler`:
+### Threading Model
 
-- **feed thread** reads the CSV feed, parses each line (`MarketDataParser`), and pushes `Tick`s
-  into a bounded SPSC queue.
-- **book thread** pops ticks, applies them to the right symbol's `OrderBook` (add/cancel/replace),
-  and pushes a top-of-book `BookSignal` into a second bounded SPSC queue.
-- **execution thread** pops signals and runs a minimal liquidity-taking rule in
-  `ExecutionEngine`, checking every candidate order against `RiskManager` before routing it to
-  `OrderGateway`.
-- **gateway thread** (inside `OrderGateway`) simulates an exchange: it accepts orders
-  asynchronously and always fully fills them, calling back into `ExecutionEngine::onFill` from its
-  own thread.
-- **logger thread** (inside `Logger`) drains a bounded, multi-producer queue that every other
-  component logs into, so logging never blocks a hot path on I/O.
+The system uses dedicated worker threads for:
 
-### Key components
+- Market data ingestion and parsing.
+- Order book updates and top-of-book signal generation.
+- Order execution and pre-trade risk validation.
+- Asynchronous exchange simulation and fill callbacks.
+- Asynchronous structured logging.
 
-| Component | Location | Responsibility |
-|---|---|---|
-| `MarketDataParser` | `include/mdlab/marketdata` | Parses one CSV line into a `Tick`, or a typed `ParseError` |
-| `SPSCQueue<T>` | `include/mdlab/util/SPSCQueue.hpp` | Header-only bounded single-producer/single-consumer ring buffer |
-| `OrderBook` | `include/mdlab/orderbook` | Per-symbol limit order book (add/cancel/replace, best bid/ask) |
-| `RiskManager` / `PositionTracker` | `include/mdlab/risk` | Pre-trade limit checks and net position/notional tracking |
-| `ExecutionEngine` / `OrderGateway` | `include/mdlab/execution` | Order lifecycle: signal → risk check → route → fill |
-| `Logger` | `include/mdlab/logger` | Async structured logging |
-| `MarketDataFeedHandler` | `include/mdlab/pipeline` | Wires the three pipeline threads together |
-| `simulation` | `apps/simulation_main.cpp` | Runnable end-to-end simulation over a CSV feed |
+Bounded SPSC queues connect the primary pipeline stages.
 
-### C++23 (and C++20) features in use
+### Key Components
 
-- `std::expected<Tick, ParseError>` for parser results (no exceptions on the hot path)
-- `std::print` / `std::println` for formatted output, `std::format` elsewhere
-- `std::jthread` + `std::stop_token` for every long-lived worker thread
-- `std::flat_map` for order book price levels, with an automatic fallback to `std::map` if the
-  standard library in use doesn't ship `<flat_map>` yet (see
-  `include/mdlab/core/OrderedMap.hpp`) — probed at configure time
-- `std::stacktrace` on the logger's fatal-log path, behind a configure-time probe (needs
-  `-lstdc++exp` on libstdc++; falls back to no-op if unavailable — see `CMakeLists.txt`)
-- `std::source_location` for automatic file/line capture in log calls
-- Concepts (`QueueElement`) constraining `SPSCQueue<T>`
-- Designated initializers throughout for aggregate construction
+| Component | Responsibility |
+|---|---|
+| MarketDataParser | CSV market data parsing and typed error handling |
+| SPSCQueue | Bounded single-producer/single-consumer ring buffer |
+| OrderBook | Order management and best bid/ask calculation |
+| ExecutionEngine | Trading decisions and order lifecycle management |
+| OrderGateway | Asynchronous exchange simulation |
+| RiskManager | Pre-trade risk validation |
+| PositionTracker | Position and notional tracking |
+| Logger | Asynchronous structured logging |
+| MarketDataFeedHandler | Multithreaded pipeline orchestration |
 
-This was all verified against the toolchain actually present (GCC 15 / libstdc++) rather than
-assumed; if you build with an older compiler and one of the probes fails, the fallback path is used
-automatically and nothing breaks.
+## Modern C++ Features
 
-## Building
+The project uses C++20 and C++23 features, including:
 
-Requires CMake ≥ 3.25, Ninja, a C++23 compiler (developed against GCC 15; Clang 21+ also has the
-required library support), and GoogleTest (either the system `libgtest-dev` package with its CMake
-config, or `/usr/src/googletest` sources — `tests/CMakeLists.txt` falls back to building from
-source automatically if `find_package(GTest)` doesn't find a config package).
+- `std::expected`
+- `std::jthread`
+- `std::stop_token`
+- `std::atomic`
+- Acquire/release memory ordering
+- C++ Concepts
+- `std::source_location`
+- `std::format`
+- `std::print` and `std::println`
+- `std::flat_map`, with a `std::map` fallback
+- `std::stacktrace`, when supported by the toolchain
+- Designated initializers
+- RAII-based resource management
 
-```sh
+Optional standard library features are detected during CMake configuration.
+
+## Repository Structure
+
+```text
+Cpp23DebuggingLab/
+├── apps/
+├── data/
+├── docs/
+│   ├── AI_DEVELOPMENT.md
+│   └── scenarios/
+├── include/
+│   └── mdlab/
+│       ├── core/
+│       ├── execution/
+│       ├── logger/
+│       ├── marketdata/
+│       ├── orderbook/
+│       ├── pipeline/
+│       ├── risk/
+│       └── util/
+├── prompts/
+├── src/
+├── tests/
+├── CMakeLists.txt
+├── CMakePresets.json
+└── README.md
+```
+
+Investigation reports and additional debugging guides are available on the completed scenario branches.
+
+## Branch and Tag Organization
+
+| Reference | Purpose |
+|---|---|
+| `main` | Project overview and reference codebase |
+| `baseline` | Healthy reference implementation |
+| `scenario/01` — `scenario/05` | Completed investigations and fixes |
+| `scenario/06` — `scenario/10` | Pending debugging challenges |
+| `buggy/scenario-01` — `buggy/scenario-05` | Preserved original defective implementations |
+
+Original debugging challenges are preserved using annotated Git tags, allowing developers to reproduce and investigate defects independently.
+
+## Build Requirements
+
+- Linux
+- C++23-compatible compiler and standard library
+- GCC 15 (development toolchain)
+- CMake 3.25 or newer
+- Ninja
+- GoogleTest
+
+## Building and Running
+
+Clone the repository:
+
+```bash
+git clone https://github.com/somayehhajabedi/Cpp23DebuggingLab.git
+cd Cpp23DebuggingLab
+```
+
+Switch to the healthy reference implementation:
+
+```bash
+git switch baseline
+```
+
+Configure, build, and test:
+
+```bash
 cmake --preset debug
 cmake --build --preset debug
-ctest --preset debug
+ctest --preset debug --output-on-failure
+```
 
+Run the trading simulation:
+
+```bash
 ./build/debug/simulation data/sample_ticks.csv
 ```
 
-### Presets
+## Build Configurations
 
 | Preset | Purpose |
 |---|---|
-| `debug` | Plain `-g` debug build, no sanitizers. Default for day-to-day work. |
-| `release` | `RelWithDebInfo`, optimized — use this for anything timing-sensitive. |
-| `asan-ubsan` | AddressSanitizer + UndefinedBehaviorSanitizer, `-fno-sanitize-recover=all`. Best for memory-safety and undefined-behavior issues. |
-| `tsan` | ThreadSanitizer. Best for data races and lock-order-inversion (potential deadlock) issues. |
+| `debug` | Standard debugging and functional testing |
+| `release` | Optimized build with debugging information |
+| `asan-ubsan` | Memory safety and undefined behavior detection |
+| `tsan` | Concurrent execution and data race detection |
 
-Each preset configures into its own `build/<preset>/` directory, so you can keep several around at
-once. Build and test with the matching `--preset` flag, e.g. `cmake --build --preset tsan` /
-`ctest --preset tsan`.
+Each preset uses an independent build directory.
 
-### Sanitizer incompatibilities
+### Memory Safety Validation
 
-**ASan/UBSan and TSan cannot be combined in the same binary.** They instrument memory access and
-synchronization in conflicting ways; linking both into one executable is either rejected by the
-toolchain or produces unreliable results. This is why they're two separate presets rather than one
-— pick whichever is relevant to what you're chasing, build clean, and don't mix object files built
-under one with object files built under the other.
-
-MemorySanitizer (uninitialized-read detection) is intentionally not provided as a preset: it
-requires every piece of code it links against — including the C++ standard library — to be built
-with MSan instrumentation too, which isn't available out of the box here. ASan with
-`-fsanitize=address` catches a useful subset of the same class of bug (and is included in
-`asan-ubsan`), just not everything MSan would.
-
-## Regression tests
-
-`ctest --preset <name>` runs the full GoogleTest suite under that preset. On `baseline`, every test
-passes under every preset (57/57, confirmed under debug, release, asan-ubsan, and tsan). The same
-suite is unchanged on every `scenario/NN` branch — it's the mechanism by which each scenario's bug
-report reproduces: one or more tests (or `ctest`'s per-test timeout, for a hang) will fail there
-that pass here.
-
-## CI
-
-`.github/workflows/ci.yml` builds and tests the `debug` and `asan-ubsan` presets on every push/PR
-to `main`/`baseline`. It does **not** run on `scenario/*` branches — those are expected to fail,
-crash, or hang by design, and that's not something a CI badge should be reporting on.
-
-## Working the debugging scenarios
-
-See [`docs/scenarios/00-index.md`](docs/scenarios/00-index.md). Each scenario is a bug report with
-reproduction steps and expected-vs-actual behavior only — no root cause, no fix, no hint about the
-underlying mechanism, on any branch, in any commit message, or in any test name.
-
-```sh
-git checkout scenario/01
-cmake --preset debug && cmake --build --preset debug && ctest --preset debug
+```bash
+cmake --preset asan-ubsan
+cmake --build --preset asan-ubsan
+ctest --preset asan-ubsan --output-on-failure
 ```
+
+### Concurrency Validation
+
+```bash
+cmake --preset tsan
+cmake --build --preset tsan
+ctest --preset tsan --output-on-failure
+```
+
+AddressSanitizer and ThreadSanitizer require separate build configurations.
+
+Sanitizer instrumentation can significantly affect execution time. Performance benchmarks should be evaluated independently using optimized, non-sanitized builds.
+
+## Practice a Debugging Challenge
+
+To investigate a completed scenario without viewing its solution, create a local practice branch from its original tag:
+
+```bash
+git switch -c practice/05 buggy/scenario-05
+```
+
+Configure and build:
+
+```bash
+cmake --preset tsan
+cmake --build --preset tsan
+```
+
+Reproduce the failure:
+
+```bash
+ctest --preset tsan --output-on-failure
+```
+
+Investigate the defect, identify its root cause, implement a correction, and validate your solution before reviewing the completed investigation.
+
+For a pending scenario, switch directly to the corresponding scenario branch.
+
+See the [Scenario Catalog](docs/scenarios/00-index.md) for the original bug reports.
+
+## Automated Testing
+
+The reference implementation includes 57 regression tests covering:
+
+- Market data parsing
+- Order book invariants
+- Queue capacity and wraparound
+- Concurrent queue data integrity
+- Order lifecycle management
+- Position tracking
+- Risk management
+- Risk limit boundaries
+- Concurrent risk snapshots
+- Notional overflow
+- Pipeline liveness
+- Logging
+- Simulation throughput
+
+The same regression suite is used to reproduce and validate the debugging scenarios.
+
+## Continuous Integration
+
+The project includes GitHub Actions configuration for building and testing the Debug and ASan/UBSan presets on the main and baseline branches.
+
+Intentionally defective scenario branches are excluded from the standard CI workflow.
+
+## AI-Assisted Development
+
+The initial application codebase, baseline tests, and debugging scenarios were generated with AI assistance.
+
+The subsequent investigations focus on human-led debugging, runtime analysis, root cause identification, implementation of corrections, and verification through actual execution of debugging tools and regression tests, with AI assistance where appropriate.
+
+This distinction is intentional: the primary objective is to demonstrate practical debugging and engineering reasoning rather than claim sole authorship of the initial generated codebase.
+
+See [AI Development Documentation](docs/AI_DEVELOPMENT.md) for additional context.
+
+## Project Status
+
+- [x] Reference implementation
+- [x] Automated regression test suite
+- [x] Independent sanitizer configurations
+- [x] Scenario 01 investigation
+- [x] Scenario 02 investigation
+- [x] Scenario 03 investigation
+- [x] Scenario 04 investigation
+- [x] Scenario 05 investigation
+- [ ] Scenario 06 investigation
+- [ ] Scenario 07 investigation
+- [ ] Scenario 08 investigation
+- [ ] Scenario 09 investigation
+- [ ] Scenario 10 investigation
+
+This project is under active development.
+
+---
+
+**Reproduce. Investigate. Understand. Fix. Validate.**
